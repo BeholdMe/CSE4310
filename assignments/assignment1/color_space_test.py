@@ -1,4 +1,6 @@
 import numpy as np
+import imageio.v3 as iio
+import sys
 
 def rgbToHsv(img):
     # Step 1 - Normalize to [0,1]
@@ -74,3 +76,36 @@ def hsvToRgb(hsv):
         r,g,b = r1 + m, g1 + m, b1 + m
         return r,g,b
 
+def test():
+    # Ask for input for filename
+    # Make sure file can be read using iio
+    print("Enter filename of image: ")
+    filename = input().strip()
+    try:
+        img = iio.imread(filename)
+    except Exception as e:
+        print(f"Error loading image: {e}")
+        sys.exit(1)
+    
+    # ask for modification values for hue, saturation, and value
+    print("Enter hue mod [0, 360]: ")
+    hueMod = float(input().strip())
+    print("Enter saturation mod: ")
+    satMod = float(input.strip())
+    print("Enter value mod: ")
+    valMod = float(input.strip())
+    # Make sure mod values fit within range
+    # Hue in [0, 360]
+    # Sat and Val in [0, 1]
+    if(hueMod < 0 or hueMod > 360):
+        print("Enter hue mod within [0, 360]")
+        sys.exit(1)
+    if(satMod < 0 or satMod > 1):
+        print("Enter saturation mod within [0, 1]")
+        sys.exit(1)
+    if(valMod < 0 or valMod > 1):
+        print("Enter value mod within [0, 1]")
+        sys.exit(1)
+
+    # convert to hsv and change hue/sat/val with mods
+    hsv = rgbToHsv(img)
