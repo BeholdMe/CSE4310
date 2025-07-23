@@ -198,31 +198,33 @@ class Tracker:
     return np.linalg.norm(np.array(p1) - np.array(p2))
 
   def step(self, detections):
-    # keep track of which ids were updated
+    # keep track of which ids were updated and which already detected
     updated_ids = set()
+    detected_already = set()
 
     # predict next positions for all current Kalman filters
     predictions = [kf.predict() for kf in self.objects]
 
     # Match each detection to closest prediction within delta threshold
-    for detection in detections:
+    for i, pred in enumerate(predictions):
       min_distance = float('inf')
       best_idx = -1
 
-      for i, pred in enumerate(predictions):
-        # if i is in the updated ids -> already matched
-        if i in updated_ids:
+      for j, detection in enumerate(detections):
+        # if j already detected -> skip
+        if j in detected_already:
           continue
 
         dist = self.distance(detection['centroid'], pred)
         if dist < min_distance:
           min_distance = dist
-          best_idx = i
+          best_idx = j
 
-      if best_idx != -1:
+      if best_idx != -1 and min_distance < self.delta:
         # update matched Kalman filters
-        self.objects[best_idx].update(detection['centroid'])
-        updated_ids.add(best_idx)
+        self.objects[i].update(detections[best_idx]['centroid'])
+        detected_already.add(best_idx)
+        updated_ids.add(i)
 
     # increment missed frame counters for unmatched objects
     for i, kf in enumerate(self.objects):
@@ -235,6 +237,7 @@ class Tracker:
     for i, kf in enumerate(self.objects):
       if kf.missed_frames < self.alpha:
         retained_objects.append(kf)
+        retained_ids.append(self.ids[i])
     self.objects = retained_objects
     self.ids = retained_ids
 
@@ -243,7 +246,8 @@ class Tracker:
       det_centroid = detection['centroid']
       is_new = True
       for kf in self.objects:
-        if self.distance(det_centroid, kf.x[:2]) < self.delta:
+        kf_pos = (kf.x[0, 0], kf.x[1, 0])
+        if self.distance(det_centroid, kf_pos) < self.delta:
           is_new = False
           break
 
